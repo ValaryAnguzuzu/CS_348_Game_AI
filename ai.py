@@ -98,8 +98,43 @@ def counts(board, game, color):
         - num_opportunities (int): The total number of capture opportunities across all pieces of the specified color
         - num_king_hopefuls (int): The total number of moves that lead to king promotions for the specified color.
     """
+    # here counts is the foundation for evaluating game states ie it’s how our AI gets eyes to measure how good or bad a situation is
+    # its like a stat collecter:
+        # saying: Here’s how many pieces I have, how many kings I’ve got, how many possible moves I could make right now, how many of those are captures, and how many could turn into kings.
+    # These become inputs for the AI’s evaluation function (evaluate()), which turns them into a numeric score
 
-    pass
+
+    # gather all pieces of this color: get_all_pieces -> Retrieves all pieces of a given color.
+    pieces = board.get_all_pieces(color)
+
+    #basic counts
+    num_pieces = len(pieces)
+
+    num_kings = sum(1 for p in pieces if p.king)
+
+    #initialize move_related metrics
+
+    num_moves = 0
+    num_opportunities = 0
+    num_king_hopefuls = 0
+
+    #for each piece, get all possible moves (single-hops only)
+        #
+    for piece in pieces:
+        moves = game.fine_moves(board, piece) # -> list of [dest, captured_list, king_hopeful_flag]
+
+        #each move is a separate possible action
+        for dest, captured, king_hopeful in moves:
+            num_moves +=1 # every valid move ncreases total mobility count
+
+            if captured: # if this move includes captured pieces
+                num_opportunities += 1
+
+            if king_hopeful: # if this move could promote piece to a king
+                num_king_hopefuls += 1
+
+    return num_pieces, num_kings, num_moves, num_opportunities, num_king_hopefuls
+
 
 def compare_boards(board1, board2):
     """
