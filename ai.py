@@ -188,20 +188,55 @@ def counts(board, game, color):
     num_opportunities = 0
     num_king_hopefuls = 0
 
+    # determine movement direction based n player color
+        # Player 1 starts at bottom (rows 5-7) and moves UP (decreasing row) to promote at row 0
+        # Player 2 starts at top (rows 0-2) and moves DOWN (increasing row) to promote at row 7
+    if color == PLAYER1_PIECE_COLOR:
+        forward_dirs = [(-1,-1), (-1,1)] # up-left, up-right (DECREASING row)
+        promote_row = 0 # Player 1 promotes at top
+        op_color = PLAYER2_PIECE_COLOR
+    else:
+        forward_dirs = [(1,-1), (1,1)] #  down-left, down-right (INCREASING row)
+        promote_row = 7 # Player 1 promotes at bottom
+        op_color = PLAYER1_PIECE_COLOR
+
     #for each piece, get all possible moves (single-hops only)
-        #
     for piece in pieces:
-        moves = game.find_moves(board, piece) # -> list of [dest, captured_list, king_hopeful_flag]
+        row, col = piece.row, piece.col
 
-        #each move is a separate possible action
-        for dest, captured, king_hopeful in moves:
-            num_moves +=1 # every valid move ncreases total mobility count
+        if piece.king:
+            directions = [(1, -1), (1, 1), (-1, -1), (-1, 1)] #kings can move in both dirs
+        else:
+            directions = forward_dirs # Regular pieces only move forward
 
-            if captured: # if this move includes captured pieces
-                num_opportunities += 1
+        for dr, dc in directions:
+            r1, c1 = row + dr, col + dc #immediate diagonal square
+            r2, c2 = row + 2 * dr, col + 2 * dc # square after that for captures
 
-            if king_hopeful: # if this move could promote piece to a king
-                num_king_hopefuls += 1
+
+            #single-step move
+            if 0 <= r1 < 8 and 0 <= c1 < 8:
+                target = board.get_piece(r1, c1)
+                if target == 0:
+                    num_moves += 1
+
+                    # check if move lands on promortion row
+                    if not piece.king and r1 == promote_row:
+                        num_king_hopefuls += 1
+
+            # single capture
+            if 0 <= r2 < 8 and 0 <= c2 < 8: # landing sq valid
+                mid_piece = board.get_piece(r1, c1)
+                landing = board.get_piece(r2, c2)
+                 # Valid capture: opponent piece in middle, empty landing
+                if mid_piece != 0 and mid_piece.color == op_color and landing == 0:
+                    num_moves += 1
+                    num_opportunities += 1
+                
+                    # check if capture lands on promotion row
+                    if not piece.king and r2 == promote_row:
+                        num_king_hopefuls += 1
+
 
     return num_pieces, num_kings, num_moves, num_opportunities, num_king_hopefuls
 
