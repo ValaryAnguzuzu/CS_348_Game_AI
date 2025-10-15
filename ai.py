@@ -26,12 +26,82 @@ def minimax_alpha_beta(board, depth, alpha, beta, max_player, game, eval_params=
                 - score (float): The score for the best move at this depth
                 - best_move (Board): The board state after the best move
         """
+    # Choose the best next move for the AI (Player 2) by looking ahead multiple moves using the Minimax algorithm
+    # and pruning useless branches using Alpha–Beta pruning
+    # The AI tries to maximize the evaluation score. The human tries to minimize it.
+    # so we We simulate several turns ahead (depth levels deep),
+    #   use evaluate() to score leaf boards,
+    #   then work our way back up the tree using Minimax logic
 
-    score = 1
-    moves = game.generate_all_moves(board, PLAYER2_PIECE_COLOR)
-    best_move = random.choice(moves)
 
-    return score, best_move
+    # base case:stopping condition
+        # when depth is 0 or when game has a winner (no more moves) -> evaluate board directly
+    winner = game.winner()
+
+    if depth == 0 or winner is not None:
+        if eval_params:
+            score = evaluate(board, game, *eval_params) # assigns a numreic score to this board
+        else:
+            score = evaluate(board, game)
+
+        return score, board
+        
+    # MAX branch (AI turn) 
+        # get all possible next boards
+        # for each possible move,
+            #   recusrsively call minimax for op; human,
+            #   keep the best (highest) score,
+            #   update alpha,
+            #   prune if beta <= alpha
+    if max_player:
+        max_eval = float('-inf') # track highest score found
+        best_move = None
+
+        for move in game.generate_all_moves(board, PLAYER2_PIECE_COLOR):
+            eval_score, _ = minimax_alpha_beta(move, depth - 1, alpha, beta, False, game, eval_params)
+
+            if eval_score > max_eval:
+                max_eval = eval_score
+                best_move = move
+
+            alpha = max(alpha, eval_score)
+
+            if beta <= alpha:
+                break
+
+        return max_eval, best_move
+
+    # MIN branch (huma turn)
+        # get all possible next boards
+        # for each possible move
+            #   recursivley call minimax for AI
+            #   keep the best (lowest) score
+            #   update beta
+            #   prune if beta <= alpha
+    else:
+        min_eval = float('inf')
+        best_move = None
+
+        for move in game.generate_all_moves(board, PLAYER1_PIECE_COLOR):
+            eval_score, _ = minimax_alpha_beta(move, depth - 1, alpha, beta, True, game, eval_params)
+
+            if eval_score < min_eval:
+                min_eval = eval_score
+                best_move = move
+
+            beta = min(beta, eval_score)
+
+            if beta <= alpha:
+                break
+
+        return min_eval, best_move
+
+
+    # score = 1
+    # moves = game.generate_all_moves(board, PLAYER2_PIECE_COLOR)
+    # best_move = random.choice(moves)
+
+    # return score, best_move
 
 def evaluate(board, game, pieces_weight=1.0, kings_weight=1.0, moves_weight=0.0, opportunities_weight=0.0, king_hopefuls_weight=0.0):
     """
@@ -121,7 +191,7 @@ def counts(board, game, color):
     #for each piece, get all possible moves (single-hops only)
         #
     for piece in pieces:
-        moves = game.fine_moves(board, piece) # -> list of [dest, captured_list, king_hopeful_flag]
+        moves = game.find_moves(board, piece) # -> list of [dest, captured_list, king_hopeful_flag]
 
         #each move is a separate possible action
         for dest, captured, king_hopeful in moves:
